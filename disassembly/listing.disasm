@@ -1,0 +1,1209 @@
+Disassembly Listing for busdisplay
+Generated From:
+E:/KMUTT/other/elec/busdisplay.X/dist/default/production/busdisplay.X.production.elf
+23 ?.?. 2562, 12:56:00
+
+---  E:/KMUTT/other/elec/busdisplay.X/main.c  -----------------------------------------------------------
+1:             /*
+2:              *  7-segment multiplexing
+3:              * 
+4:              *  RA0 = Left anode
+5:              *  RA1 = Center anode
+6:              *  RA2 = Right anode
+7:              *  RA3 = Hex(1)/Dec(0) selector input
+8:              *  
+9:              *  PORTB = Data input
+10:             *  PORTC = Cathode (DP,G,F,E,D,C,B,A)
+11:             */
+12:            
+13:            // CONFIG
+14:            #pragma config OSC = XT         // Oscillator selection bits (XT oscillator)
+15:            #pragma config WDT = ON         // Watchdog timer enable bit (WDT enabled)
+16:            #pragma config CP = OFF         // Code protection bit (Code protection off)
+17:            
+18:            #define _XTAL_FREQ 4000000
+19:            
+20:            #include <xc.h>
+21:            
+22:            unsigned char digits[16] = {192,249,164,176,153,146,130,216,128,144,136,131,198,161,134,142};
+0068  08C0     RETLW 0xC0
+23:            
+24:            void main(void) {
+25:                
+26:                int t;
+27:                
+28:                TRISA = 0x08;   //RA3 = input else output
+00E5  0C08     MOVLW 0x8
+00E6  0005     TRIS PORTA
+29:                TRISB = 0xFF;   //RB = input
+00E7  0CFF     MOVLW 0xFF
+00E8  0006     TRIS PORTB
+30:                TRISC = 0x00;   //RC = output
+00E9  0C00     MOVLW 0x0
+00EA  0007     TRIS PORTC
+31:                
+32:                PORTA = 0x00;   //turn off all anodes
+00EB  04A4     BCF FSR, 0x5
+00EC  04C4     BCF FSR, 0x6
+00ED  0065     CLRF PORTA
+33:                PORTC = 0xFF;   //turn off all cathodes
+00EE  0CFF     MOVLW 0xFF
+00EF  0027     MOVWF PORTC
+34:                
+35:                while(1)
+36:                {
+37:                    if(RA3 == 1)    //hex
+00F0  04A4     BCF FSR, 0x5
+00F1  04C4     BCF FSR, 0x6
+00F2  0765     BTFSS PORTA, 0x3
+00F3  0AF5     GOTO 0xF5
+00F4  0AF6     GOTO 0xF6
+00F5  0B4E     GOTO 0x14E
+38:                    {
+39:                        t = PORTB;
+00F6  0206     MOVF PORTB, W
+00F7  002E     MOVWF 0xE
+00F8  006F     CLRF 0xF
+00F9  020E     MOVF 0xE, W
+00FA  003A     MOVWF t
+00FB  020F     MOVF 0xF, W
+00FC  003B     MOVWF 0x1B
+40:                    
+41:                        //center
+42:                        PORTC = digits[t >> 4];
+00FD  021B     MOVF 0x1B, W
+00FE  002F     MOVWF 0xF
+00FF  021A     MOVF t, W
+0100  002E     MOVWF 0xE
+0101  0C04     MOVLW 0x4
+0102  0028     MOVWF 0x8
+0103  034F     RLF 0xF, W
+0104  032F     RRF 0xF, F
+0105  032E     RRF 0xE, F
+0106  02E8     DECFSZ 0x8, F
+0107  0B03     GOTO 0x103
+0108  020E     MOVF 0xE, W
+0109  0028     MOVWF 0x8
+010A  0C30     MOVLW 0x30
+010B  01C8     ADDWF 0x8, W
+010C  0024     MOVWF FSR
+010D  0200     MOVF INDF, W
+010E  04A4     BCF FSR, 0x5
+010F  04C4     BCF FSR, 0x6
+0110  0027     MOVWF PORTC
+43:                        RA0 = 1;
+0111  0505     BSF PORTA, 0x0
+44:                        __delay_ms(10);
+0112  0C0D     MOVLW 0xD
+0113  04A4     BCF FSR, 0x5
+0114  04C4     BCF FSR, 0x6
+0115  0039     MOVWF 0x19
+0116  0CFB     MOVLW 0xFB
+0117  0038     MOVWF 0x18
+0118  02F8     DECFSZ 0x18, F
+0119  0B18     GOTO 0x118
+011A  02F9     DECFSZ 0x19, F
+011B  0B18     GOTO 0x118
+45:                        RA0 = 0;
+011C  04A4     BCF FSR, 0x5
+011D  04C4     BCF FSR, 0x6
+011E  0405     BCF PORTA, 0x0
+46:                        __delay_ms(10);
+011F  0C0D     MOVLW 0xD
+0120  04A4     BCF FSR, 0x5
+0121  04C4     BCF FSR, 0x6
+0122  0039     MOVWF 0x19
+0123  0CFB     MOVLW 0xFB
+0124  0038     MOVWF 0x18
+0125  02F8     DECFSZ 0x18, F
+0126  0B25     GOTO 0x125
+0127  02F9     DECFSZ 0x19, F
+0128  0B25     GOTO 0x125
+47:                        
+48:                        //right
+49:                        PORTC = digits[t & 0x0F];
+0129  04A4     BCF FSR, 0x5
+012A  04C4     BCF FSR, 0x6
+012B  021A     MOVF t, W
+012C  0E0F     ANDLW 0xF
+012D  0028     MOVWF 0x8
+012E  0C30     MOVLW 0x30
+012F  01C8     ADDWF 0x8, W
+0130  0024     MOVWF FSR
+0131  0200     MOVF INDF, W
+0132  04A4     BCF FSR, 0x5
+0133  04C4     BCF FSR, 0x6
+0134  0027     MOVWF PORTC
+50:                        RA0 = 1;
+0135  0505     BSF PORTA, 0x0
+51:                        __delay_ms(10);
+0136  0C0D     MOVLW 0xD
+0137  04A4     BCF FSR, 0x5
+0138  04C4     BCF FSR, 0x6
+0139  0039     MOVWF 0x19
+013A  0CFB     MOVLW 0xFB
+013B  0038     MOVWF 0x18
+013C  02F8     DECFSZ 0x18, F
+013D  0B3C     GOTO 0x13C
+013E  02F9     DECFSZ 0x19, F
+013F  0B3C     GOTO 0x13C
+52:                        RA0 = 0;
+0140  04A4     BCF FSR, 0x5
+0141  04C4     BCF FSR, 0x6
+0142  0405     BCF PORTA, 0x0
+53:                        __delay_ms(10);
+0143  0C0D     MOVLW 0xD
+0144  04A4     BCF FSR, 0x5
+0145  04C4     BCF FSR, 0x6
+0146  0039     MOVWF 0x19
+0147  0CFB     MOVLW 0xFB
+0148  0038     MOVWF 0x18
+0149  02F8     DECFSZ 0x18, F
+014A  0B49     GOTO 0x149
+014B  02F9     DECFSZ 0x19, F
+014C  0B49     GOTO 0x149
+54:                    }    
+014D  0AF0     GOTO 0xF0
+55:                    else            //dec
+56:                    {
+57:                        t = PORTB;
+014E  0206     MOVF PORTB, W
+014F  002E     MOVWF 0xE
+0150  006F     CLRF 0xF
+0151  020E     MOVF 0xE, W
+0152  003A     MOVWF t
+0153  020F     MOVF 0xF, W
+0154  003B     MOVWF 0x1B
+58:                    
+59:                        //left
+60:                        PORTC = digits[t / 100];
+0155  0C64     MOVLW 0x64
+0156  0030     MOVWF __pcstackBANK0
+0157  0C00     MOVLW 0x0
+0158  0031     MOVWF 0x11
+0159  021B     MOVF 0x1B, W
+015A  0033     MOVWF 0x13
+015B  021A     MOVF t, W
+015C  0032     MOVWF dividend
+015D  04C3     BCF STATUS, 0x6
+015E  04A3     BCF STATUS, 0x5
+015F  097B     CALL 0x7B
+0160  04C3     BCF STATUS, 0x6
+0161  04A3     BCF STATUS, 0x5
+0162  04A4     BCF FSR, 0x5
+0163  04C4     BCF FSR, 0x6
+0164  0210     MOVF __pcstackBANK0, W
+0165  002E     MOVWF 0xE
+0166  0211     MOVF 0x11, W
+0167  002F     MOVWF 0xF
+0168  020E     MOVF 0xE, W
+0169  0028     MOVWF 0x8
+016A  0C30     MOVLW 0x30
+016B  01C8     ADDWF 0x8, W
+016C  0024     MOVWF FSR
+016D  0200     MOVF INDF, W
+016E  04A4     BCF FSR, 0x5
+016F  04C4     BCF FSR, 0x6
+0170  0027     MOVWF PORTC
+61:                        t = t % 100;
+0171  0C64     MOVLW 0x64
+0172  0030     MOVWF __pcstackBANK0
+0173  0C00     MOVLW 0x0
+0174  0031     MOVWF 0x11
+0175  021B     MOVF 0x1B, W
+0176  0033     MOVWF 0x13
+0177  021A     MOVF t, W
+0178  0032     MOVWF dividend
+0179  04C3     BCF STATUS, 0x6
+017A  04A3     BCF STATUS, 0x5
+017B  0978     CALL 0x78
+017C  04C3     BCF STATUS, 0x6
+017D  04A3     BCF STATUS, 0x5
+017E  04A4     BCF FSR, 0x5
+017F  04C4     BCF FSR, 0x6
+0180  0211     MOVF 0x11, W
+0181  003B     MOVWF 0x1B
+0182  0210     MOVF __pcstackBANK0, W
+0183  003A     MOVWF t
+62:                        RA0 = 1;
+0184  0505     BSF PORTA, 0x0
+63:                        __delay_ms(10);
+0185  0C0D     MOVLW 0xD
+0186  04A4     BCF FSR, 0x5
+0187  04C4     BCF FSR, 0x6
+0188  0039     MOVWF 0x19
+0189  0CFB     MOVLW 0xFB
+018A  0038     MOVWF 0x18
+018B  02F8     DECFSZ 0x18, F
+018C  0B8B     GOTO 0x18B
+018D  02F9     DECFSZ 0x19, F
+018E  0B8B     GOTO 0x18B
+64:                        RA0 = 0;
+018F  04A4     BCF FSR, 0x5
+0190  04C4     BCF FSR, 0x6
+0191  0405     BCF PORTA, 0x0
+65:                        __delay_ms(10);
+0192  0C0D     MOVLW 0xD
+0193  04A4     BCF FSR, 0x5
+0194  04C4     BCF FSR, 0x6
+0195  0039     MOVWF 0x19
+0196  0CFB     MOVLW 0xFB
+0197  0038     MOVWF 0x18
+0198  02F8     DECFSZ 0x18, F
+0199  0B98     GOTO 0x198
+019A  02F9     DECFSZ 0x19, F
+019B  0B98     GOTO 0x198
+66:                        
+67:                        //center
+68:                        PORTC = digits[t / 10];
+019C  0C0A     MOVLW 0xA
+019D  04A4     BCF FSR, 0x5
+019E  04C4     BCF FSR, 0x6
+019F  0030     MOVWF __pcstackBANK0
+01A0  0C00     MOVLW 0x0
+01A1  0031     MOVWF 0x11
+01A2  021B     MOVF 0x1B, W
+01A3  0033     MOVWF 0x13
+01A4  021A     MOVF t, W
+01A5  0032     MOVWF dividend
+01A6  04C3     BCF STATUS, 0x6
+01A7  04A3     BCF STATUS, 0x5
+01A8  097B     CALL 0x7B
+01A9  04C3     BCF STATUS, 0x6
+01AA  04A3     BCF STATUS, 0x5
+01AB  04A4     BCF FSR, 0x5
+01AC  04C4     BCF FSR, 0x6
+01AD  0210     MOVF __pcstackBANK0, W
+01AE  002E     MOVWF 0xE
+01AF  0211     MOVF 0x11, W
+01B0  002F     MOVWF 0xF
+01B1  020E     MOVF 0xE, W
+01B2  0028     MOVWF 0x8
+01B3  0C30     MOVLW 0x30
+01B4  01C8     ADDWF 0x8, W
+01B5  0024     MOVWF FSR
+01B6  0200     MOVF INDF, W
+01B7  04A4     BCF FSR, 0x5
+01B8  04C4     BCF FSR, 0x6
+01B9  0027     MOVWF PORTC
+69:                        t = t % 10;
+01BA  0C0A     MOVLW 0xA
+01BB  0030     MOVWF __pcstackBANK0
+01BC  0C00     MOVLW 0x0
+01BD  0031     MOVWF 0x11
+01BE  021B     MOVF 0x1B, W
+01BF  0033     MOVWF 0x13
+01C0  021A     MOVF t, W
+01C1  0032     MOVWF dividend
+01C2  04C3     BCF STATUS, 0x6
+01C3  04A3     BCF STATUS, 0x5
+01C4  0978     CALL 0x78
+01C5  04C3     BCF STATUS, 0x6
+01C6  04A3     BCF STATUS, 0x5
+01C7  04A4     BCF FSR, 0x5
+01C8  04C4     BCF FSR, 0x6
+01C9  0211     MOVF 0x11, W
+01CA  003B     MOVWF 0x1B
+01CB  0210     MOVF __pcstackBANK0, W
+01CC  003A     MOVWF t
+70:                        RA1 = 1;
+01CD  0525     BSF PORTA, 0x1
+71:                        __delay_ms(10);
+01CE  0C0D     MOVLW 0xD
+01CF  04A4     BCF FSR, 0x5
+01D0  04C4     BCF FSR, 0x6
+01D1  0039     MOVWF 0x19
+01D2  0CFB     MOVLW 0xFB
+01D3  0038     MOVWF 0x18
+01D4  02F8     DECFSZ 0x18, F
+01D5  0BD4     GOTO 0x1D4
+01D6  02F9     DECFSZ 0x19, F
+01D7  0BD4     GOTO 0x1D4
+72:                        RA1 = 0;
+01D8  04A4     BCF FSR, 0x5
+01D9  04C4     BCF FSR, 0x6
+01DA  0425     BCF PORTA, 0x1
+73:                        __delay_ms(10);
+01DB  0C0D     MOVLW 0xD
+01DC  04A4     BCF FSR, 0x5
+01DD  04C4     BCF FSR, 0x6
+01DE  0039     MOVWF 0x19
+01DF  0CFB     MOVLW 0xFB
+01E0  0038     MOVWF 0x18
+01E1  02F8     DECFSZ 0x18, F
+01E2  0BE1     GOTO 0x1E1
+01E3  02F9     DECFSZ 0x19, F
+01E4  0BE1     GOTO 0x1E1
+74:                        
+75:                        //right
+76:                        PORTC = digits[t];
+01E5  0C30     MOVLW 0x30
+01E6  04A4     BCF FSR, 0x5
+01E7  04C4     BCF FSR, 0x6
+01E8  01DA     ADDWF t, W
+01E9  0024     MOVWF FSR
+01EA  0200     MOVF INDF, W
+01EB  04A4     BCF FSR, 0x5
+01EC  04C4     BCF FSR, 0x6
+01ED  0027     MOVWF PORTC
+77:                        RA2 = 1;
+01EE  0545     BSF PORTA, 0x2
+78:                        __delay_ms(10);
+01EF  0C0D     MOVLW 0xD
+01F0  04A4     BCF FSR, 0x5
+01F1  04C4     BCF FSR, 0x6
+01F2  0039     MOVWF 0x19
+01F3  0CFB     MOVLW 0xFB
+01F4  0038     MOVWF 0x18
+01F5  02F8     DECFSZ 0x18, F
+01F6  0BF5     GOTO 0x1F5
+01F7  02F9     DECFSZ 0x19, F
+01F8  0BF5     GOTO 0x1F5
+79:                        RA2 = 0;
+01F9  04A4     BCF FSR, 0x5
+01FA  04C4     BCF FSR, 0x6
+01FB  0445     BCF PORTA, 0x2
+01FC  0B43     GOTO 0x143
+01FD  04C3     BCF STATUS, 0x6
+01FE  04A3     BCF STATUS, 0x5
+01FF  0A00     GOTO 0x0
+80:                        __delay_ms(10);
+81:                    }
+82:                }
+83:                return;
+84:            }
+---  C:/Users/lsira/AppData/Local/Temp/sqc8.s  ----------------------------------------------------------
+0003  05A4     BSF FSR, 0x5
+0004  04C3     BCF STATUS, 0x6
+0009  0030     MOVWF __pcstackBANK0
+000A  04C3     BCF STATUS, 0x6
+000F  0031     MOVWF 0x11
+0010  04C3     BCF STATUS, 0x6
+0015  0032     MOVWF dividend
+0016  04C3     BCF STATUS, 0x6
+001B  0033     MOVWF 0x13
+001C  04C3     BCF STATUS, 0x6
+0021  0034     MOVWF counter
+0022  04C3     BCF STATUS, 0x6
+0027  0035     MOVWF sign
+0028  04C3     BCF STATUS, 0x6
+002D  0036     MOVWF quotient
+002E  04C3     BCF STATUS, 0x6
+0033  0037     MOVWF 0x17
+0034  04C3     BCF STATUS, 0x6
+0039  0038     MOVWF 0x18
+003A  04C3     BCF STATUS, 0x6
+003F  0039     MOVWF 0x19
+0040  04C3     BCF STATUS, 0x6
+0045  003A     MOVWF t
+0046  04C3     BCF STATUS, 0x6
+004B  003B     MOVWF 0x1B
+004C  04C3     BCF STATUS, 0x6
+0051  003C     MOVWF 0x1C
+0052  04C3     BCF STATUS, 0x6
+0057  003D     MOVWF 0x1D
+0058  04C3     BCF STATUS, 0x6
+005D  003E     MOVWF 0x1E
+005E  04C3     BCF STATUS, 0x6
+0063  003F     MOVWF 0x1F
+0064  0064     CLRF FSR
+0065  04C3     BCF STATUS, 0x6
+---  C:/Program Files (x86)/Microchip/xc8/v2.10/pic/sources/c90/common/awmod.c  -------------------------
+1:             // integer signed unsigned modulus
+2:             
+3:             signed int
+4:             #ifdef __PICC__
+5:             __awmod(signed int divisor, signed int dividend)
+0078  04C3     BCF STATUS, 0x6
+6:             #else
+7:             __awmod(signed int dividend, signed int divisor)
+8:             #endif
+9:             {
+10:            	unsigned char	counter, sign;
+11:            
+12:            	sign = 0;
+0082  04A4     BCF FSR, 0x5
+0083  04C4     BCF FSR, 0x6
+0084  0075     CLRF sign
+13:            	if(dividend < 0) {
+0085  07F3     BTFSS 0x13, 0x7
+0086  0A88     GOTO 0x88
+0087  0A89     GOTO 0x89
+0088  0A90     GOTO 0x90
+14:            		dividend = -dividend;
+0089  0272     COMF dividend, F
+008A  0273     COMF 0x13, F
+008B  02B2     INCF dividend, F
+008C  0643     BTFSC STATUS, 0x2
+008D  02B3     INCF 0x13, F
+15:            		sign = 1;
+008E  0075     CLRF sign
+008F  02B5     INCF sign, F
+16:            	}
+17:            	if(divisor < 0)
+0090  07F1     BTFSS 0x11, 0x7
+0091  0A93     GOTO 0x93
+0092  0A94     GOTO 0x94
+0093  0A99     GOTO 0x99
+18:            		divisor = -divisor;
+0094  0270     COMF __pcstackBANK0, F
+0095  0271     COMF 0x11, F
+0096  02B0     INCF __pcstackBANK0, F
+0097  0643     BTFSC STATUS, 0x2
+0098  02B1     INCF 0x11, F
+19:            	if(divisor != 0) {
+0099  0210     MOVF __pcstackBANK0, W
+009A  0111     IORWF 0x11, W
+009B  0643     BTFSC STATUS, 0x2
+009C  0A9E     GOTO 0x9E
+009D  0A9F     GOTO 0x9F
+009E  0AD6     GOTO 0xD6
+20:            		counter = 1;
+009F  0074     CLRF counter
+00A0  02B4     INCF counter, F
+21:            		while(((unsigned int)divisor & 0x8000U) == 0) {
+00A1  0AAD     GOTO 0xAD
+00AD  07F1     BTFSS 0x11, 0x7
+00AE  0AB0     GOTO 0xB0
+00AF  0AB1     GOTO 0xB1
+00B0  0AA2     GOTO 0xA2
+22:            			divisor <<= 1;
+00A2  0C01     MOVLW 0x1
+00A3  0028     MOVWF 0x8
+00A4  0403     BCF STATUS, 0x0
+00A5  0370     RLF __pcstackBANK0, F
+00A6  0371     RLF 0x11, F
+00A7  02E8     DECFSZ 0x8, F
+00A8  0AA4     GOTO 0xA4
+23:            			counter++;
+00A9  0C01     MOVLW 0x1
+00AA  002F     MOVWF 0xF
+00AB  020F     MOVF 0xF, W
+00AC  01F4     ADDWF counter, F
+24:            		}
+25:            		do {
+26:            			if((unsigned int)divisor <= (unsigned int)dividend)
+00B1  0211     MOVF 0x11, W
+00B2  002F     MOVWF 0xF
+00B3  0210     MOVF __pcstackBANK0, W
+00B4  002E     MOVWF 0xE
+00B5  020F     MOVF 0xF, W
+00B6  0093     SUBWF 0x13, W
+00B7  0743     BTFSS STATUS, 0x2
+00B8  0ABB     GOTO 0xBB
+00B9  020E     MOVF 0xE, W
+00BA  0092     SUBWF dividend, W
+00BB  0703     BTFSS STATUS, 0x0
+00BC  0ABE     GOTO 0xBE
+00BD  0ABF     GOTO 0xBF
+00BE  0AC9     GOTO 0xC9
+27:            				dividend -= divisor;
+00BF  0211     MOVF 0x11, W
+00C0  002F     MOVWF 0xF
+00C1  0210     MOVF __pcstackBANK0, W
+00C2  002E     MOVWF 0xE
+00C3  020E     MOVF 0xE, W
+00C4  00B2     SUBWF dividend, F
+00C5  020F     MOVF 0xF, W
+00C6  0703     BTFSS STATUS, 0x0
+00C7  00F3     DECF 0x13, F
+00C8  00B3     SUBWF 0x13, F
+28:            			*(unsigned int *)&divisor >>= 1;
+00C9  0C01     MOVLW 0x1
+00CA  0028     MOVWF 0x8
+00CB  0403     BCF STATUS, 0x0
+00CC  0331     RRF 0x11, F
+00CD  0330     RRF __pcstackBANK0, F
+00CE  02E8     DECFSZ 0x8, F
+00CF  0ACB     GOTO 0xCB
+29:            		} while(--counter != 0);
+00D0  0C01     MOVLW 0x1
+00D1  00B4     SUBWF counter, F
+00D2  0743     BTFSS STATUS, 0x2
+00D3  0AD5     GOTO 0xD5
+00D4  0AD6     GOTO 0xD6
+00D5  0AB1     GOTO 0xB1
+30:            	}
+31:            	if(sign)
+00D6  0215     MOVF sign, W
+00D7  0643     BTFSC STATUS, 0x2
+00D8  0ADA     GOTO 0xDA
+00D9  0ADB     GOTO 0xDB
+00DA  0AE0     GOTO 0xE0
+32:            		dividend = -dividend;
+00DB  0272     COMF dividend, F
+00DC  0273     COMF 0x13, F
+00DD  02B2     INCF dividend, F
+00DE  0643     BTFSC STATUS, 0x2
+00DF  02B3     INCF 0x13, F
+33:            	return dividend;
+00E0  0213     MOVF 0x13, W
+00E1  0031     MOVWF 0x11
+00E2  0212     MOVF dividend, W
+00E3  0030     MOVWF __pcstackBANK0
+34:            }
+00E4  0800     RETLW 0x0
+---  C:/Program Files (x86)/Microchip/xc8/v2.10/pic/sources/c90/common/awdiv.c  -------------------------
+1:             // integer signed division
+2:             
+3:             signed int
+4:             #ifdef __PICC__
+5:             __awdiv(signed int divisor, signed int dividend)
+007B  04C3     BCF STATUS, 0x6
+6:             #else
+7:             __awdiv(signed int dividend, signed int divisor)
+8:             #endif
+9:             {
+10:            	signed int	quotient;
+11:            	unsigned char	counter, sign;
+12:            
+13:            	sign = 0;
+038F  04A4     BCF FSR, 0x5
+0390  04C4     BCF FSR, 0x6
+0391  0075     CLRF sign
+14:            	if(divisor < 0) {
+0392  07F1     BTFSS 0x11, 0x7
+0393  0B95     GOTO 0x195
+0394  0B96     GOTO 0x196
+0395  0B9D     GOTO 0x19D
+15:            		divisor = -divisor;
+0396  0270     COMF __pcstackBANK0, F
+0397  0271     COMF 0x11, F
+0398  02B0     INCF __pcstackBANK0, F
+0399  0643     BTFSC STATUS, 0x2
+039A  02B1     INCF 0x11, F
+16:            		sign = 1;
+039B  0075     CLRF sign
+039C  02B5     INCF sign, F
+17:            	}
+18:            	if(dividend < 0) {
+039D  07F3     BTFSS 0x13, 0x7
+039E  0BA0     GOTO 0x1A0
+039F  0BA1     GOTO 0x1A1
+03A0  0BAA     GOTO 0x1AA
+19:            		dividend = -dividend;
+03A1  0272     COMF dividend, F
+03A2  0273     COMF 0x13, F
+03A3  02B2     INCF dividend, F
+03A4  0643     BTFSC STATUS, 0x2
+03A5  02B3     INCF 0x13, F
+20:            		sign ^= 1;
+03A6  0C01     MOVLW 0x1
+03A7  002F     MOVWF 0xF
+03A8  020F     MOVF 0xF, W
+03A9  01B5     XORWF sign, F
+21:            	}
+22:            	quotient = 0;
+03AA  0076     CLRF quotient
+03AB  0077     CLRF 0x17
+23:            	if(divisor != 0) {
+03AC  0210     MOVF __pcstackBANK0, W
+03AD  0111     IORWF 0x11, W
+03AE  0643     BTFSC STATUS, 0x2
+03AF  0BB1     GOTO 0x1B1
+03B0  0BB2     GOTO 0x1B2
+03B1  0BF1     GOTO 0x1F1
+24:            		counter = 1;
+03B2  0074     CLRF counter
+03B3  02B4     INCF counter, F
+25:            		while((divisor & 0x8000U) == 0) {
+03B4  0BC0     GOTO 0x1C0
+03C0  07F1     BTFSS 0x11, 0x7
+03C1  0BC3     GOTO 0x1C3
+03C2  0BC4     GOTO 0x1C4
+03C3  0BB5     GOTO 0x1B5
+26:            			divisor <<= 1;
+03B5  0C01     MOVLW 0x1
+03B6  0028     MOVWF 0x8
+03B7  0403     BCF STATUS, 0x0
+03B8  0370     RLF __pcstackBANK0, F
+03B9  0371     RLF 0x11, F
+03BA  02E8     DECFSZ 0x8, F
+03BB  0BB7     GOTO 0x1B7
+27:            			counter++;
+03BC  0C01     MOVLW 0x1
+03BD  002F     MOVWF 0xF
+03BE  020F     MOVF 0xF, W
+03BF  01F4     ADDWF counter, F
+28:            		}
+29:            		do {
+30:            			quotient <<= 1;
+03C4  0C01     MOVLW 0x1
+03C5  0028     MOVWF 0x8
+03C6  0403     BCF STATUS, 0x0
+03C7  0376     RLF quotient, F
+03C8  0377     RLF 0x17, F
+03C9  02E8     DECFSZ 0x8, F
+03CA  0BC6     GOTO 0x1C6
+31:            			if((unsigned int)divisor <= (unsigned int)dividend) {
+03CB  0211     MOVF 0x11, W
+03CC  002F     MOVWF 0xF
+03CD  0210     MOVF __pcstackBANK0, W
+03CE  002E     MOVWF 0xE
+03CF  020F     MOVF 0xF, W
+03D0  0093     SUBWF 0x13, W
+03D1  0743     BTFSS STATUS, 0x2
+03D2  0BD5     GOTO 0x1D5
+03D3  020E     MOVF 0xE, W
+03D4  0092     SUBWF dividend, W
+03D5  0703     BTFSS STATUS, 0x0
+03D6  0BD8     GOTO 0x1D8
+03D7  0BD9     GOTO 0x1D9
+03D8  0BE4     GOTO 0x1E4
+32:            				dividend -= divisor;
+03D9  0211     MOVF 0x11, W
+03DA  002F     MOVWF 0xF
+03DB  0210     MOVF __pcstackBANK0, W
+03DC  002E     MOVWF 0xE
+03DD  020E     MOVF 0xE, W
+03DE  00B2     SUBWF dividend, F
+03DF  020F     MOVF 0xF, W
+03E0  0703     BTFSS STATUS, 0x0
+03E1  00F3     DECF 0x13, F
+03E2  00B3     SUBWF 0x13, F
+33:            				quotient |= 1;
+03E3  0516     BSF quotient, 0x0
+34:            			}
+35:            			*(unsigned int *)&divisor >>= 1;
+03E4  0C01     MOVLW 0x1
+03E5  0028     MOVWF 0x8
+03E6  0403     BCF STATUS, 0x0
+03E7  0331     RRF 0x11, F
+03E8  0330     RRF __pcstackBANK0, F
+03E9  02E8     DECFSZ 0x8, F
+03EA  0BE6     GOTO 0x1E6
+36:            		} while(--counter != 0);
+03EB  0C01     MOVLW 0x1
+03EC  00B4     SUBWF counter, F
+03ED  0743     BTFSS STATUS, 0x2
+03EE  0BF0     GOTO 0x1F0
+03EF  0BF1     GOTO 0x1F1
+03F0  0BC4     GOTO 0x1C4
+37:            	}
+38:            	if(sign)
+03F1  0215     MOVF sign, W
+03F2  0643     BTFSC STATUS, 0x2
+03F3  0BF5     GOTO 0x1F5
+03F4  0BF6     GOTO 0x1F6
+03F5  0BFB     GOTO 0x1FB
+39:            		quotient = -quotient;
+03F6  0276     COMF quotient, F
+03F7  0277     COMF 0x17, F
+03F8  02B6     INCF quotient, F
+03F9  0643     BTFSC STATUS, 0x2
+03FA  02B7     INCF 0x17, F
+40:            	return quotient;
+03FB  0217     MOVF 0x17, W
+03FC  0031     MOVWF 0x11
+03FD  0216     MOVF quotient, W
+03FE  0030     MOVWF __pcstackBANK0
+41:            }
+03FF  0800     RETLW 0x0
+---  C:/Program Files (x86)/Microchip/xc8/v2.10/pic/include/pic16f57.h  ---------------------------------
+1:             // Version 2.10
+2:             // Generated 31/07/2019 GMT
+3:             
+4:             /*
+5:              * Copyright © 2019, Microchip Technology Inc. and its subsidiaries ("Microchip")
+6:              * All rights reserved.
+7:              * 
+8:              * This software is developed by Microchip Technology Inc. and its subsidiaries ("Microchip").
+9:              * 
+10:             * Redistribution and use in source and binary forms, with or without modification, are
+11:             * permitted provided that the following conditions are met:
+12:             * 
+13:             *     1. Redistributions of source code must retain the above copyright notice, this list of
+14:             *        conditions and the following disclaimer.
+15:             * 
+16:             *     2. Redistributions in binary form must reproduce the above copyright notice, this list
+17:             *        of conditions and the following disclaimer in the documentation and/or other
+18:             *        materials provided with the distribution.
+19:             * 
+20:             *     3. Microchip's name may not be used to endorse or promote products derived from this
+21:             *        software without specific prior written permission.
+22:             * 
+23:             * THIS SOFTWARE IS PROVIDED BY MICROCHIP "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+24:             * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+25:             * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL MICROCHIP BE LIABLE FOR ANY DIRECT, INDIRECT,
+26:             * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING BUT NOT LIMITED TO
+27:             * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA OR PROFITS; OR BUSINESS
+28:             * INTERRUPTION) HOWSOEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+29:             * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+30:             * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+31:             */
+32:            
+33:            #ifndef _PIC16F57_H_
+34:            #define _PIC16F57_H_
+35:            
+36:            /*
+37:             * C Header file for the Microchip PIC Microcontroller
+38:             * PIC16F57
+39:             */
+40:            #ifndef __XC8
+41:            #warning Header file pic16f57.h included directly. Use #include <xc.h> instead.
+42:            #endif
+43:            
+44:            #include <__at.h>
+45:            
+46:            /*
+47:             * Register Definitions
+48:             */
+49:            
+50:            // Register: INDF
+51:            #define INDF INDF
+52:            extern volatile unsigned char           INDF                __at(0x000);
+53:            #ifndef _LIB_BUILD
+54:            asm("INDF equ 00h");
+55:            #endif
+56:            // bitfield definitions
+57:            typedef union {
+58:                struct {
+59:                    unsigned INDF                   :8;
+60:                };
+61:            } INDFbits_t;
+62:            extern volatile INDFbits_t INDFbits __at(0x000);
+63:            // bitfield macros
+64:            #define _INDF_INDF_POSN                                     0x0
+65:            #define _INDF_INDF_POSITION                                 0x0
+66:            #define _INDF_INDF_SIZE                                     0x8
+67:            #define _INDF_INDF_LENGTH                                   0x8
+68:            #define _INDF_INDF_MASK                                     0xFF
+69:            
+70:            // Register: TMR0
+71:            #define TMR0 TMR0
+72:            extern volatile unsigned char           TMR0                __at(0x001);
+73:            #ifndef _LIB_BUILD
+74:            asm("TMR0 equ 01h");
+75:            #endif
+76:            // bitfield definitions
+77:            typedef union {
+78:                struct {
+79:                    unsigned TMR0                   :8;
+80:                };
+81:            } TMR0bits_t;
+82:            extern volatile TMR0bits_t TMR0bits __at(0x001);
+83:            // bitfield macros
+84:            #define _TMR0_TMR0_POSN                                     0x0
+85:            #define _TMR0_TMR0_POSITION                                 0x0
+86:            #define _TMR0_TMR0_SIZE                                     0x8
+87:            #define _TMR0_TMR0_LENGTH                                   0x8
+88:            #define _TMR0_TMR0_MASK                                     0xFF
+89:            
+90:            // Register: PCL
+91:            #define PCL PCL
+92:            extern volatile unsigned char           PCL                 __at(0x002);
+93:            #ifndef _LIB_BUILD
+94:            asm("PCL equ 02h");
+95:            #endif
+96:            // bitfield definitions
+97:            typedef union {
+98:                struct {
+99:                    unsigned PCL                    :8;
+100:               };
+101:           } PCLbits_t;
+102:           extern volatile PCLbits_t PCLbits __at(0x002);
+103:           // bitfield macros
+104:           #define _PCL_PCL_POSN                                       0x0
+105:           #define _PCL_PCL_POSITION                                   0x0
+106:           #define _PCL_PCL_SIZE                                       0x8
+107:           #define _PCL_PCL_LENGTH                                     0x8
+108:           #define _PCL_PCL_MASK                                       0xFF
+109:           
+110:           // Register: STATUS
+111:           #define STATUS STATUS
+112:           extern volatile unsigned char           STATUS              __at(0x003);
+113:           #ifndef _LIB_BUILD
+114:           asm("STATUS equ 03h");
+115:           #endif
+116:           // bitfield definitions
+117:           typedef union {
+118:               struct {
+119:                   unsigned C                      :1;
+120:                   unsigned DC                     :1;
+121:                   unsigned Z                      :1;
+122:                   unsigned nPD                    :1;
+123:                   unsigned nTO                    :1;
+124:                   unsigned PA                     :3;
+125:               };
+126:               struct {
+127:                   unsigned                        :5;
+128:                   unsigned PA0                    :1;
+129:                   unsigned PA1                    :1;
+130:                   unsigned PA2                    :1;
+131:               };
+132:               struct {
+133:                   unsigned CARRY                  :1;
+134:                   unsigned                        :1;
+135:                   unsigned ZERO                   :1;
+136:               };
+137:           } STATUSbits_t;
+138:           extern volatile STATUSbits_t STATUSbits __at(0x003);
+139:           // bitfield macros
+140:           #define _STATUS_C_POSN                                      0x0
+141:           #define _STATUS_C_POSITION                                  0x0
+142:           #define _STATUS_C_SIZE                                      0x1
+143:           #define _STATUS_C_LENGTH                                    0x1
+144:           #define _STATUS_C_MASK                                      0x1
+145:           #define _STATUS_DC_POSN                                     0x1
+146:           #define _STATUS_DC_POSITION                                 0x1
+147:           #define _STATUS_DC_SIZE                                     0x1
+148:           #define _STATUS_DC_LENGTH                                   0x1
+149:           #define _STATUS_DC_MASK                                     0x2
+150:           #define _STATUS_Z_POSN                                      0x2
+151:           #define _STATUS_Z_POSITION                                  0x2
+152:           #define _STATUS_Z_SIZE                                      0x1
+153:           #define _STATUS_Z_LENGTH                                    0x1
+154:           #define _STATUS_Z_MASK                                      0x4
+155:           #define _STATUS_nPD_POSN                                    0x3
+156:           #define _STATUS_nPD_POSITION                                0x3
+157:           #define _STATUS_nPD_SIZE                                    0x1
+158:           #define _STATUS_nPD_LENGTH                                  0x1
+159:           #define _STATUS_nPD_MASK                                    0x8
+160:           #define _STATUS_nTO_POSN                                    0x4
+161:           #define _STATUS_nTO_POSITION                                0x4
+162:           #define _STATUS_nTO_SIZE                                    0x1
+163:           #define _STATUS_nTO_LENGTH                                  0x1
+164:           #define _STATUS_nTO_MASK                                    0x10
+165:           #define _STATUS_PA_POSN                                     0x5
+166:           #define _STATUS_PA_POSITION                                 0x5
+167:           #define _STATUS_PA_SIZE                                     0x3
+168:           #define _STATUS_PA_LENGTH                                   0x3
+169:           #define _STATUS_PA_MASK                                     0xE0
+170:           #define _STATUS_PA0_POSN                                    0x5
+171:           #define _STATUS_PA0_POSITION                                0x5
+172:           #define _STATUS_PA0_SIZE                                    0x1
+173:           #define _STATUS_PA0_LENGTH                                  0x1
+174:           #define _STATUS_PA0_MASK                                    0x20
+175:           #define _STATUS_PA1_POSN                                    0x6
+176:           #define _STATUS_PA1_POSITION                                0x6
+177:           #define _STATUS_PA1_SIZE                                    0x1
+178:           #define _STATUS_PA1_LENGTH                                  0x1
+179:           #define _STATUS_PA1_MASK                                    0x40
+180:           #define _STATUS_PA2_POSN                                    0x7
+181:           #define _STATUS_PA2_POSITION                                0x7
+182:           #define _STATUS_PA2_SIZE                                    0x1
+183:           #define _STATUS_PA2_LENGTH                                  0x1
+184:           #define _STATUS_PA2_MASK                                    0x80
+185:           #define _STATUS_CARRY_POSN                                  0x0
+186:           #define _STATUS_CARRY_POSITION                              0x0
+187:           #define _STATUS_CARRY_SIZE                                  0x1
+188:           #define _STATUS_CARRY_LENGTH                                0x1
+189:           #define _STATUS_CARRY_MASK                                  0x1
+190:           #define _STATUS_ZERO_POSN                                   0x2
+191:           #define _STATUS_ZERO_POSITION                               0x2
+192:           #define _STATUS_ZERO_SIZE                                   0x1
+193:           #define _STATUS_ZERO_LENGTH                                 0x1
+194:           #define _STATUS_ZERO_MASK                                   0x4
+195:           
+196:           // Register: FSR
+197:           #define FSR FSR
+198:           extern volatile unsigned char           FSR                 __at(0x004);
+199:           #ifndef _LIB_BUILD
+200:           asm("FSR equ 04h");
+201:           #endif
+202:           // bitfield definitions
+203:           typedef union {
+204:               struct {
+205:                   unsigned FSR                    :8;
+206:               };
+207:           } FSRbits_t;
+208:           extern volatile FSRbits_t FSRbits __at(0x004);
+209:           // bitfield macros
+210:           #define _FSR_FSR_POSN                                       0x0
+211:           #define _FSR_FSR_POSITION                                   0x0
+212:           #define _FSR_FSR_SIZE                                       0x8
+213:           #define _FSR_FSR_LENGTH                                     0x8
+214:           #define _FSR_FSR_MASK                                       0xFF
+215:           
+216:           // Register: PORTA
+217:           #define PORTA PORTA
+218:           extern volatile unsigned char           PORTA               __at(0x005);
+219:           #ifndef _LIB_BUILD
+220:           asm("PORTA equ 05h");
+221:           #endif
+222:           // bitfield definitions
+223:           typedef union {
+224:               struct {
+225:                   unsigned RA0                    :1;
+226:                   unsigned RA1                    :1;
+227:                   unsigned RA2                    :1;
+228:                   unsigned RA3                    :1;
+229:                   unsigned T0CKI                  :1;
+230:               };
+231:           } PORTAbits_t;
+232:           extern volatile PORTAbits_t PORTAbits __at(0x005);
+233:           // bitfield macros
+234:           #define _PORTA_RA0_POSN                                     0x0
+235:           #define _PORTA_RA0_POSITION                                 0x0
+236:           #define _PORTA_RA0_SIZE                                     0x1
+237:           #define _PORTA_RA0_LENGTH                                   0x1
+238:           #define _PORTA_RA0_MASK                                     0x1
+239:           #define _PORTA_RA1_POSN                                     0x1
+240:           #define _PORTA_RA1_POSITION                                 0x1
+241:           #define _PORTA_RA1_SIZE                                     0x1
+242:           #define _PORTA_RA1_LENGTH                                   0x1
+243:           #define _PORTA_RA1_MASK                                     0x2
+244:           #define _PORTA_RA2_POSN                                     0x2
+245:           #define _PORTA_RA2_POSITION                                 0x2
+246:           #define _PORTA_RA2_SIZE                                     0x1
+247:           #define _PORTA_RA2_LENGTH                                   0x1
+248:           #define _PORTA_RA2_MASK                                     0x4
+249:           #define _PORTA_RA3_POSN                                     0x3
+250:           #define _PORTA_RA3_POSITION                                 0x3
+251:           #define _PORTA_RA3_SIZE                                     0x1
+252:           #define _PORTA_RA3_LENGTH                                   0x1
+253:           #define _PORTA_RA3_MASK                                     0x8
+254:           #define _PORTA_T0CKI_POSN                                   0x4
+255:           #define _PORTA_T0CKI_POSITION                               0x4
+256:           #define _PORTA_T0CKI_SIZE                                   0x1
+257:           #define _PORTA_T0CKI_LENGTH                                 0x1
+258:           #define _PORTA_T0CKI_MASK                                   0x10
+259:           
+260:           // Register: PORTB
+261:           #define PORTB PORTB
+262:           extern volatile unsigned char           PORTB               __at(0x006);
+263:           #ifndef _LIB_BUILD
+264:           asm("PORTB equ 06h");
+265:           #endif
+266:           // bitfield definitions
+267:           typedef union {
+268:               struct {
+269:                   unsigned RB0                    :1;
+270:                   unsigned RB1                    :1;
+271:                   unsigned RB2                    :1;
+272:                   unsigned RB3                    :1;
+273:                   unsigned RB4                    :1;
+274:                   unsigned RB5                    :1;
+275:                   unsigned RB6                    :1;
+276:                   unsigned RB7                    :1;
+277:               };
+278:           } PORTBbits_t;
+279:           extern volatile PORTBbits_t PORTBbits __at(0x006);
+280:           // bitfield macros
+281:           #define _PORTB_RB0_POSN                                     0x0
+282:           #define _PORTB_RB0_POSITION                                 0x0
+283:           #define _PORTB_RB0_SIZE                                     0x1
+284:           #define _PORTB_RB0_LENGTH                                   0x1
+285:           #define _PORTB_RB0_MASK                                     0x1
+286:           #define _PORTB_RB1_POSN                                     0x1
+287:           #define _PORTB_RB1_POSITION                                 0x1
+288:           #define _PORTB_RB1_SIZE                                     0x1
+289:           #define _PORTB_RB1_LENGTH                                   0x1
+290:           #define _PORTB_RB1_MASK                                     0x2
+291:           #define _PORTB_RB2_POSN                                     0x2
+292:           #define _PORTB_RB2_POSITION                                 0x2
+293:           #define _PORTB_RB2_SIZE                                     0x1
+294:           #define _PORTB_RB2_LENGTH                                   0x1
+295:           #define _PORTB_RB2_MASK                                     0x4
+296:           #define _PORTB_RB3_POSN                                     0x3
+297:           #define _PORTB_RB3_POSITION                                 0x3
+298:           #define _PORTB_RB3_SIZE                                     0x1
+299:           #define _PORTB_RB3_LENGTH                                   0x1
+300:           #define _PORTB_RB3_MASK                                     0x8
+301:           #define _PORTB_RB4_POSN                                     0x4
+302:           #define _PORTB_RB4_POSITION                                 0x4
+303:           #define _PORTB_RB4_SIZE                                     0x1
+304:           #define _PORTB_RB4_LENGTH                                   0x1
+305:           #define _PORTB_RB4_MASK                                     0x10
+306:           #define _PORTB_RB5_POSN                                     0x5
+307:           #define _PORTB_RB5_POSITION                                 0x5
+308:           #define _PORTB_RB5_SIZE                                     0x1
+309:           #define _PORTB_RB5_LENGTH                                   0x1
+310:           #define _PORTB_RB5_MASK                                     0x20
+311:           #define _PORTB_RB6_POSN                                     0x6
+312:           #define _PORTB_RB6_POSITION                                 0x6
+313:           #define _PORTB_RB6_SIZE                                     0x1
+314:           #define _PORTB_RB6_LENGTH                                   0x1
+315:           #define _PORTB_RB6_MASK                                     0x40
+316:           #define _PORTB_RB7_POSN                                     0x7
+317:           #define _PORTB_RB7_POSITION                                 0x7
+318:           #define _PORTB_RB7_SIZE                                     0x1
+319:           #define _PORTB_RB7_LENGTH                                   0x1
+320:           #define _PORTB_RB7_MASK                                     0x80
+321:           
+322:           // Register: PORTC
+323:           #define PORTC PORTC
+324:           extern volatile unsigned char           PORTC               __at(0x007);
+325:           #ifndef _LIB_BUILD
+326:           asm("PORTC equ 07h");
+0068  08C0     RETLW 0xC0
+327:           #endif
+328:           // bitfield definitions
+329:           typedef union {
+330:               struct {
+331:                   unsigned RC0                    :1;
+332:                   unsigned RC1                    :1;
+333:                   unsigned RC2                    :1;
+334:                   unsigned RC3                    :1;
+335:                   unsigned RC4                    :1;
+336:                   unsigned RC5                    :1;
+337:                   unsigned RC6                    :1;
+338:                   unsigned RC7                    :1;
+339:               };
+340:           } PORTCbits_t;
+341:           extern volatile PORTCbits_t PORTCbits __at(0x007);
+342:           // bitfield macros
+343:           #define _PORTC_RC0_POSN                                     0x0
+344:           #define _PORTC_RC0_POSITION                                 0x0
+345:           #define _PORTC_RC0_SIZE                                     0x1
+346:           #define _PORTC_RC0_LENGTH                                   0x1
+347:           #define _PORTC_RC0_MASK                                     0x1
+348:           #define _PORTC_RC1_POSN                                     0x1
+349:           #define _PORTC_RC1_POSITION                                 0x1
+350:           #define _PORTC_RC1_SIZE                                     0x1
+351:           #define _PORTC_RC1_LENGTH                                   0x1
+352:           #define _PORTC_RC1_MASK                                     0x2
+353:           #define _PORTC_RC2_POSN                                     0x2
+354:           #define _PORTC_RC2_POSITION                                 0x2
+355:           #define _PORTC_RC2_SIZE                                     0x1
+356:           #define _PORTC_RC2_LENGTH                                   0x1
+357:           #define _PORTC_RC2_MASK                                     0x4
+358:           #define _PORTC_RC3_POSN                                     0x3
+359:           #define _PORTC_RC3_POSITION                                 0x3
+360:           #define _PORTC_RC3_SIZE                                     0x1
+361:           #define _PORTC_RC3_LENGTH                                   0x1
+362:           #define _PORTC_RC3_MASK                                     0x8
+363:           #define _PORTC_RC4_POSN                                     0x4
+364:           #define _PORTC_RC4_POSITION                                 0x4
+365:           #define _PORTC_RC4_SIZE                                     0x1
+366:           #define _PORTC_RC4_LENGTH                                   0x1
+367:           #define _PORTC_RC4_MASK                                     0x10
+368:           #define _PORTC_RC5_POSN                                     0x5
+369:           #define _PORTC_RC5_POSITION                                 0x5
+370:           #define _PORTC_RC5_SIZE                                     0x1
+371:           #define _PORTC_RC5_LENGTH                                   0x1
+372:           #define _PORTC_RC5_MASK                                     0x20
+373:           #define _PORTC_RC6_POSN                                     0x6
+374:           #define _PORTC_RC6_POSITION                                 0x6
+375:           #define _PORTC_RC6_SIZE                                     0x1
+376:           #define _PORTC_RC6_LENGTH                                   0x1
+377:           #define _PORTC_RC6_MASK                                     0x40
+378:           #define _PORTC_RC7_POSN                                     0x7
+379:           #define _PORTC_RC7_POSITION                                 0x7
+380:           #define _PORTC_RC7_SIZE                                     0x1
+381:           #define _PORTC_RC7_LENGTH                                   0x1
+382:           #define _PORTC_RC7_MASK                                     0x80
+383:           
+384:           // Register: OPTION
+385:           #define OPTION OPTION
+386:           extern volatile __control unsigned char OPTION              __at(0x000);
+387:           
+388:           // Register: TRISA
+389:           #define TRISA TRISA
+390:           extern volatile __control unsigned char TRISA               __at(0x005);
+391:           
+392:           // Register: TRISB
+393:           #define TRISB TRISB
+394:           extern volatile __control unsigned char TRISB               __at(0x006);
+395:           
+396:           // Register: TRISC
+397:           #define TRISC TRISC
+398:           extern volatile __control unsigned char TRISC               __at(0x007);
+399:           
+400:           /*
+401:            * OPTION bits
+402:            */
+403:           #define                                 PS                  0x7
+404:           #define                                 PSA                 0x8
+405:           #define                                 T0SE                0x10
+406:           #define                                 T0CS                0x20
+407:           #define                                 PS0                 0x1
+408:           #define                                 PS1                 0x2
+409:           #define                                 PS2                 0x4
+410:           
+411:           /*
+412:            * Bit Definitions
+413:            */
+414:           #define _DEPRECATED __attribute__((__deprecated__))
+415:           #ifndef BANKMASK
+416:           #define BANKMASK(addr) ((addr)&01Fh)
+417:           #endif
+418:           // STATUS<CARRY>
+419:           extern volatile __bit                   CARRY               __at(0x18);	// @ (0x3 * 8 + 0)
+420:           #define                                 CARRY_bit           BANKMASK(STATUS), 0
+421:           // STATUS<DC>
+422:           extern volatile __bit                   DC                  __at(0x19);	// @ (0x3 * 8 + 1)
+423:           #define                                 DC_bit              BANKMASK(STATUS), 1
+424:           // STATUS<PA0>
+425:           extern volatile __bit                   PA0                 __at(0x1D);	// @ (0x3 * 8 + 5)
+426:           #define                                 PA0_bit             BANKMASK(STATUS), 5
+427:           // STATUS<PA1>
+428:           extern volatile __bit                   PA1                 __at(0x1E);	// @ (0x3 * 8 + 6)
+429:           #define                                 PA1_bit             BANKMASK(STATUS), 6
+430:           // STATUS<PA2>
+431:           extern volatile __bit                   PA2                 __at(0x1F);	// @ (0x3 * 8 + 7)
+432:           #define                                 PA2_bit             BANKMASK(STATUS), 7
+433:           // PORTA<RA0>
+434:           extern volatile __bit                   RA0                 __at(0x28);	// @ (0x5 * 8 + 0)
+435:           #define                                 RA0_bit             BANKMASK(PORTA), 0
+436:           // PORTA<RA1>
+437:           extern volatile __bit                   RA1                 __at(0x29);	// @ (0x5 * 8 + 1)
+438:           #define                                 RA1_bit             BANKMASK(PORTA), 1
+439:           // PORTA<RA2>
+440:           extern volatile __bit                   RA2                 __at(0x2A);	// @ (0x5 * 8 + 2)
+441:           #define                                 RA2_bit             BANKMASK(PORTA), 2
+442:           // PORTA<RA3>
+443:           extern volatile __bit                   RA3                 __at(0x2B);	// @ (0x5 * 8 + 3)
+444:           #define                                 RA3_bit             BANKMASK(PORTA), 3
+445:           // PORTB<RB0>
+446:           extern volatile __bit                   RB0                 __at(0x30);	// @ (0x6 * 8 + 0)
+447:           #define                                 RB0_bit             BANKMASK(PORTB), 0
+448:           // PORTB<RB1>
+449:           extern volatile __bit                   RB1                 __at(0x31);	// @ (0x6 * 8 + 1)
+450:           #define                                 RB1_bit             BANKMASK(PORTB), 1
+451:           // PORTB<RB2>
+452:           extern volatile __bit                   RB2                 __at(0x32);	// @ (0x6 * 8 + 2)
+453:           #define                                 RB2_bit             BANKMASK(PORTB), 2
+454:           // PORTB<RB3>
+455:           extern volatile __bit                   RB3                 __at(0x33);	// @ (0x6 * 8 + 3)
+456:           #define                                 RB3_bit             BANKMASK(PORTB), 3
+457:           // PORTB<RB4>
+458:           extern volatile __bit                   RB4                 __at(0x34);	// @ (0x6 * 8 + 4)
+459:           #define                                 RB4_bit             BANKMASK(PORTB), 4
+460:           // PORTB<RB5>
+461:           extern volatile __bit                   RB5                 __at(0x35);	// @ (0x6 * 8 + 5)
+462:           #define                                 RB5_bit             BANKMASK(PORTB), 5
+463:           // PORTB<RB6>
+464:           extern volatile __bit                   RB6                 __at(0x36);	// @ (0x6 * 8 + 6)
+465:           #define                                 RB6_bit             BANKMASK(PORTB), 6
+466:           // PORTB<RB7>
+467:           extern volatile __bit                   RB7                 __at(0x37);	// @ (0x6 * 8 + 7)
+468:           #define                                 RB7_bit             BANKMASK(PORTB), 7
+469:           // PORTC<RC0>
+470:           extern volatile __bit                   RC0                 __at(0x38);	// @ (0x7 * 8 + 0)
+471:           #define                                 RC0_bit             BANKMASK(PORTC), 0
+472:           // PORTC<RC1>
+473:           extern volatile __bit                   RC1                 __at(0x39);	// @ (0x7 * 8 + 1)
+474:           #define                                 RC1_bit             BANKMASK(PORTC), 1
+475:           // PORTC<RC2>
+476:           extern volatile __bit                   RC2                 __at(0x3A);	// @ (0x7 * 8 + 2)
+477:           #define                                 RC2_bit             BANKMASK(PORTC), 2
+478:           // PORTC<RC3>
+479:           extern volatile __bit                   RC3                 __at(0x3B);	// @ (0x7 * 8 + 3)
+480:           #define                                 RC3_bit             BANKMASK(PORTC), 3
+481:           // PORTC<RC4>
+482:           extern volatile __bit                   RC4                 __at(0x3C);	// @ (0x7 * 8 + 4)
+483:           #define                                 RC4_bit             BANKMASK(PORTC), 4
+484:           // PORTC<RC5>
+485:           extern volatile __bit                   RC5                 __at(0x3D);	// @ (0x7 * 8 + 5)
+486:           #define                                 RC5_bit             BANKMASK(PORTC), 5
+487:           // PORTC<RC6>
+488:           extern volatile __bit                   RC6                 __at(0x3E);	// @ (0x7 * 8 + 6)
+489:           #define                                 RC6_bit             BANKMASK(PORTC), 6
+490:           // PORTC<RC7>
+491:           extern volatile __bit                   RC7                 __at(0x3F);	// @ (0x7 * 8 + 7)
+492:           #define                                 RC7_bit             BANKMASK(PORTC), 7
+493:           // PORTA<T0CKI>
+494:           extern volatile __bit                   T0CKI               __at(0x2C);	// @ (0x5 * 8 + 4)
+495:           #define                                 T0CKI_bit           BANKMASK(PORTA), 4
+496:           // STATUS<ZERO>
+497:           extern volatile __bit                   ZERO                __at(0x1A);	// @ (0x3 * 8 + 2)
+498:           #define                                 ZERO_bit            BANKMASK(STATUS), 2
+499:           // STATUS<nPD>
+500:           extern volatile __bit                   nPD                 __at(0x1B);	// @ (0x3 * 8 + 3)
+501:           #define                                 nPD_bit             BANKMASK(STATUS), 3
+502:           // STATUS<nTO>
+503:           extern volatile __bit                   nTO                 __at(0x1C);	// @ (0x3 * 8 + 4)
+504:           #define                                 nTO_bit             BANKMASK(STATUS), 4
+505:           
+506:           #endif // _PIC16F57_H_
